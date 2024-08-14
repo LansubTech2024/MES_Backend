@@ -1,88 +1,114 @@
-import oracledb
-import pandas as pd
+from django.http import JsonResponse
+from django.db.models import Avg
 import matplotlib.pyplot as plt
 import seaborn as sns
 from io import BytesIO
-from django.http import JsonResponse
-from rest_framework.decorators import api_view
+import base64
+import numpy as np
+from .models import GraphModel
+from decimal import Decimal
 
-@api_view(['GET'])
-def fetch_all_charts(request):
-    # Connect to the Oracle database using oracledb
-    connection = oracledb.connect(
-        user='SYS',
-        password='Lansub',
-        dsn='localhost:1521/orcl',
-        mode=oracledb.SYSDBA
-    )
+def generate_graphs(request):
+    data = GraphModel.objects.all()
     
-    # Execute the query and fetch data into a DataFrame
-    query = 'SELECT * FROM MACHINES_TABLE'  # Update with your query
-    df = pd.read_sql(query, con=connection)
+    graphs = []
     
-    # Dictionary to store chart images
-    charts = {}
+    # Bar chart
+    plt.figure(figsize=(10, 6))
+    temperatures = ['CHW In', 'CHW Out', 'COW In', 'COW Out']
+    values = [
+        float(data.aggregate(Avg('chw_in_temp'))['chw_in_temp__avg'] or 0),
+        float(data.aggregate(Avg('chw_out_temp'))['chw_out_temp__avg'] or 0),
+        float(data.aggregate(Avg('cow_in_temp'))['cow_in_temp__avg'] or 0),
+        float(data.aggregate(Avg('cow_out_temp'))['cow_out_temp__avg'] or 0)
+    ]
+    plt.bar(temperatures, values)
+    plt.title('Average Temperatures')
+    plt.ylabel('Temperature')
+    graphs.append({"type": "bar", "data": get_graph()})
     
-    # Bar Chart
-    buf = BytesIO()
-    plt.figure()
-    df.plot(kind='bar', x='CHW_IN_TEMP', y='CHW_OUT_TEMP')  # Adjust columns as needed
-    plt.title('Bar Chart Example')
-    plt.savefig(buf, format='png')
-    buf.seek(0)
-    charts['bar'] = buf.getvalue().decode('latin1')
-    plt.close()
-
-    # Pie Chart
-    buf = BytesIO()
-    plt.figure()
-    df.groupby('category_column')['COW_OUT_TEMP'].sum().plot(kind='pie', autopct='%1.1f%%')  # Adjust columns as needed
-    plt.title('Pie Chart Example')
-    plt.savefig(buf, format='png')
-    buf.seek(0)
-    charts['pie'] = buf.getvalue().decode('latin1')
-    plt.close()
+    # Line plot
+    plt.figure(figsize=(10, 6))
+    plt.plot([float(x) for x in data.values_list('id', flat=True)],
+             [float(x) for x in data.values_list('chw_in_temp', flat=True)], label='CHW In')
+    plt.plot([float(x) for x in data.values_list('id', flat=True)],
+             [float(x) for x in data.values_list('chw_out_temp', flat=True)], label='CHW Out')
+    plt.plot([float(x) for x in data.values_list('id', flat=True)],
+             [float(x) for x in data.values_list('cow_in_temp', flat=True)], label='COW In')
+    plt.plot([float(x) for x in data.values_list('id', flat=True)],
+             [float(x) for x in data.values_list('cow_out_temp', flat=True)], label='COW Out')
+    plt.title('Temperature Trends')
+    plt.xlabel('Record ID')
+    plt.ylabel('Temperature')
+    plt.legend()
+    graphs.append({"type": "line", "data": get_graph()})
+    
+    # Scatter plot
+    plt.figure(figsize=(10, 6))
+    plt.scatter([float(x) for x in data.values_list('chw_in_temp', flat=True)],
+                [float(x) for x in data.values_list('cow_out_temp', flat=True)])
+    plt.title('CHW In vs COW Out Temperature')
+    plt.xlabel('CHW In Temperature')
+    plt.ylabel('COW Out Temperature')
+    graphs.append({"type": "scatter", "data": get_graph()})
+    
+    # Box plot
+    plt.figure(figsize=(10, 6))
+    plt.boxplot([[float(x) for x in data.values_list('chw_in_temp', flat=True)],
+                 [float(x) for x in data.values_list('chw_out_temp', flat=True)],
+                 [float(x) for x in data.values_list('cow_in_temp', flat=True)],
+                 [float(x) for x in data.values_list('cow_out_temp', flat=True)]],
+                labels=['CHW In', 'CHW Out', 'COW In', 'COW Out'])
+    plt.title('Temperature Distribution')
+    plt.ylabel('Temperature')
+    graphs.append({"type": "box", "data": get_graph()})
 
     # Heatmap
-    buf = BytesIO()
-    plt.figure()
-    heatmap_data = df.pivot('CHW_OUT_TEMP', 'CHW_IN_TEMP', 'COW_OUT_TEMP')  # Adjust columns as needed
-    sns.heatmap(heatmap_data, annot=True, cmap='coolwarm')
-    plt.title('Heatmap Example')
-    plt.savefig(buf, format='png')
-    buf.seek(0)
-    charts['heatmap'] = buf.getvalue().decode('latin1')
-    plt.close()
+    plt.figure(figsize=(10, 8))
+    correlation_matrix = np.corrcoef([
+        [float(x) for x in data.values_list('chw_in_temp', flat=True)],
+        [float(x) for x in data.values_list('chw_out_temp', flat=True)],
+        [float(x) for x in data.values_list('cow_in_temp', flat=True)],
+        [float(x) for x in data.values_list('cow_out_temp', flat=True)]
+    ])
+    sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', 
+                xticklabels=['CHW In', 'CHW Out', 'COW In', 'COW Out'],
+                yticklabels=['CHW In', 'CHW Out', 'COW In', 'COW Out'])
+    plt.title('Temperature Correlation Heatmap')
+    graphs.append({"type": "heatmap", "data": get_graph()})
 
     # Histogram
-    buf = BytesIO()
-    plt.figure()
-    df['COW_OUT_TEMP'].plot(kind='hist', bins=10)  # Adjust columns and bins as needed
-    plt.title('Histogram Example')
-    plt.savefig(buf, format='png')
-    buf.seek(0)
-    charts['histogram'] = buf.getvalue().decode('latin1')
-    plt.close()
+    plt.figure(figsize=(12, 6))
+    plt.hist([
+        [float(x) for x in data.values_list('chw_in_temp', flat=True)],
+        [float(x) for x in data.values_list('chw_out_temp', flat=True)],
+        [float(x) for x in data.values_list('cow_in_temp', flat=True)],
+        [float(x) for x in data.values_list('cow_out_temp', flat=True)]
+    ], label=['CHW In', 'CHW Out', 'COW In', 'COW Out'], bins=20)
+    plt.title('Temperature Distribution Histogram')
+    plt.xlabel('Temperature')
+    plt.ylabel('Frequency')
+    plt.legend()
+    graphs.append({"type": "histogram", "data": get_graph()})
+    
+    # Pie Chart
+    plt.figure(figsize=(10, 10))
+    temp_ranges = {
+        'Low': data.filter(chw_in_temp__lt=20).count(),
+        'Medium': data.filter(chw_in_temp__gte=20, chw_in_temp__lt=30).count(),
+        'High': data.filter(chw_in_temp__gte=30).count()
+    }
+    plt.pie(temp_ranges.values(), labels=temp_ranges.keys(), autopct='%1.1f%%')
+    plt.title('CHW In Temperature Range Distribution')
+    graphs.append({"type": "pie", "data": get_graph()})
+    
+    return JsonResponse({"graphs": graphs})
 
-    # Scatter Plot
-    buf = BytesIO()
-    plt.figure()
-    df.plot(kind='scatter', x='CHW_IN_TEMP', y='CHW_OUT_TEMP')  # Adjust columns as needed
-    plt.title('Scatter Plot Example')
-    plt.savefig(buf, format='png')
-    buf.seek(0)
-    charts['scatter'] = buf.getvalue().decode('latin1')
-    plt.close()
-
-    # Box Plot
-    buf = BytesIO()
-    plt.figure()
-    df[['COW_OUT_TEMP']].plot(kind='box')  # Adjust columns as needed
-    plt.title('Box Plot Example')
-    plt.savefig(buf, format='png')
-    buf.seek(0)
-    charts['box'] = buf.getvalue().decode('latin1')
-    plt.close()
-
-    # Return all charts as JSON
-    return JsonResponse(charts)
+def get_graph():
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+    image_png = buffer.getvalue()
+    graph = base64.b64encode(image_png).decode('utf-8')
+    buffer.close()
+    return graph
