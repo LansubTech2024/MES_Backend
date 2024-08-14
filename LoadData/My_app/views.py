@@ -37,7 +37,6 @@ class ImportMachinesView(APIView):
                     chw_out_temp=row['CHW_OUT_TEMP'],
                     cow_in_temp=row['COW_IN_TEMP'],
                     cow_out_temp=row['COW_OUT_TEMP'],
-                    time=datetime.strptime(row['TIME'], '%d/%m/%Y %H:%M:%S').time()
                 )
                 for _, row in df.iterrows()
             ]
