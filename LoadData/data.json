@@ -40721,5 +40721,40 @@
         "COW_IN_TEMP": 21.80,
         "COW_OUT_TEMP": -1.30,
         "STEAM_TEMP": 0.00
+    },
+    {
+        "CHW_IN_TEMP": 56.50,
+        "CHW_OUT_TEMP": -83.20,
+        "COW_IN_TEMP": 90.80,
+        "COW_OUT_TEMP": -9.30,
+        "STEAM_TEMP": 0.00
+    },
+    {
+        "CHW_IN_TEMP": 76.34,
+        "CHW_OUT_TEMP": -101.90,
+        "COW_IN_TEMP": 60.49,
+        "COW_OUT_TEMP": -6.59,
+        "STEAM_TEMP": 0.00
+    },
+    {
+        "CHW_IN_TEMP": 100.14,
+        "CHW_OUT_TEMP": -134.92,
+        "COW_IN_TEMP": 20.43,
+        "COW_OUT_TEMP": -3.39,
+        "STEAM_TEMP": 0.00
+    },
+    {
+        "CHW_IN_TEMP": 10.14,
+        "CHW_OUT_TEMP": -114.92,
+        "COW_IN_TEMP": 10.43,
+        "COW_OUT_TEMP": -8.09,
+        "STEAM_TEMP": 0.00
+    },
+    {
+        "CHW_IN_TEMP": 90.34,
+        "CHW_OUT_TEMP": -84.52,
+        "COW_IN_TEMP": 67.73,
+        "COW_OUT_TEMP": -3.99,
+        "STEAM_TEMP": 0.00
     }
 ]

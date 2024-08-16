@@ -1,114 +1,99 @@
 from django.http import JsonResponse
-from django.db.models import Avg
-import matplotlib.pyplot as plt
-import seaborn as sns
-from io import BytesIO
-import base64
-import numpy as np
+from django.db.models import Avg, Count
 from .models import GraphModel
-from decimal import Decimal
+import numpy as np
 
-def generate_graphs(request):
+def generate_graphs_data(request):
     data = GraphModel.objects.all()
-    
-    graphs = []
-    
-    # Bar chart
-    plt.figure(figsize=(10, 6))
-    temperatures = ['CHW In', 'CHW Out', 'COW In', 'COW Out']
-    values = [
-        float(data.aggregate(Avg('chw_in_temp'))['chw_in_temp__avg'] or 0),
-        float(data.aggregate(Avg('chw_out_temp'))['chw_out_temp__avg'] or 0),
-        float(data.aggregate(Avg('cow_in_temp'))['cow_in_temp__avg'] or 0),
-        float(data.aggregate(Avg('cow_out_temp'))['cow_out_temp__avg'] or 0)
-    ]
-    plt.bar(temperatures, values)
-    plt.title('Average Temperatures')
-    plt.ylabel('Temperature')
-    graphs.append({"type": "bar", "data": get_graph()})
-    
-    # Line plot
-    plt.figure(figsize=(10, 6))
-    plt.plot([float(x) for x in data.values_list('id', flat=True)],
-             [float(x) for x in data.values_list('chw_in_temp', flat=True)], label='CHW In')
-    plt.plot([float(x) for x in data.values_list('id', flat=True)],
-             [float(x) for x in data.values_list('chw_out_temp', flat=True)], label='CHW Out')
-    plt.plot([float(x) for x in data.values_list('id', flat=True)],
-             [float(x) for x in data.values_list('cow_in_temp', flat=True)], label='COW In')
-    plt.plot([float(x) for x in data.values_list('id', flat=True)],
-             [float(x) for x in data.values_list('cow_out_temp', flat=True)], label='COW Out')
-    plt.title('Temperature Trends')
-    plt.xlabel('Record ID')
-    plt.ylabel('Temperature')
-    plt.legend()
-    graphs.append({"type": "line", "data": get_graph()})
-    
-    # Scatter plot
-    plt.figure(figsize=(10, 6))
-    plt.scatter([float(x) for x in data.values_list('chw_in_temp', flat=True)],
-                [float(x) for x in data.values_list('cow_out_temp', flat=True)])
-    plt.title('CHW In vs COW Out Temperature')
-    plt.xlabel('CHW In Temperature')
-    plt.ylabel('COW Out Temperature')
-    graphs.append({"type": "scatter", "data": get_graph()})
-    
-    # Box plot
-    plt.figure(figsize=(10, 6))
-    plt.boxplot([[float(x) for x in data.values_list('chw_in_temp', flat=True)],
-                 [float(x) for x in data.values_list('chw_out_temp', flat=True)],
-                 [float(x) for x in data.values_list('cow_in_temp', flat=True)],
-                 [float(x) for x in data.values_list('cow_out_temp', flat=True)]],
-                labels=['CHW In', 'CHW Out', 'COW In', 'COW Out'])
-    plt.title('Temperature Distribution')
-    plt.ylabel('Temperature')
-    graphs.append({"type": "box", "data": get_graph()})
 
-    # Heatmap
-    plt.figure(figsize=(10, 8))
-    correlation_matrix = np.corrcoef([
-        [float(x) for x in data.values_list('chw_in_temp', flat=True)],
-        [float(x) for x in data.values_list('chw_out_temp', flat=True)],
-        [float(x) for x in data.values_list('cow_in_temp', flat=True)],
-        [float(x) for x in data.values_list('cow_out_temp', flat=True)]
-    ])
-    sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', 
-                xticklabels=['CHW In', 'CHW Out', 'COW In', 'COW Out'],
-                yticklabels=['CHW In', 'CHW Out', 'COW In', 'COW Out'])
-    plt.title('Temperature Correlation Heatmap')
-    graphs.append({"type": "heatmap", "data": get_graph()})
+    # Bar chart data
+    bar_data = {
+        'labels': ['CHW In', 'CHW Out', 'COW In', 'COW Out'],
+        'datasets': [{
+            'label': 'Average Temperatures',
+            'data': [
+                data.aggregate(Avg('chw_in_temp'))['chw_in_temp__avg'],
+                data.aggregate(Avg('chw_out_temp'))['chw_out_temp__avg'],
+                data.aggregate(Avg('cow_in_temp'))['cow_in_temp__avg'],
+                data.aggregate(Avg('cow_out_temp'))['cow_out_temp__avg']
+            ],
+            'backgroundColor': [
+                'rgba(255, 99, 132, 0.6)',
+                'rgba(54, 162, 235, 0.6)',
+                'rgba(255, 206, 86, 0.6)',
+                'rgba(75, 192, 192, 0.6)'
+            ],
+        }]
+    }
 
-    # Histogram
-    plt.figure(figsize=(12, 6))
-    plt.hist([
-        [float(x) for x in data.values_list('chw_in_temp', flat=True)],
-        [float(x) for x in data.values_list('chw_out_temp', flat=True)],
-        [float(x) for x in data.values_list('cow_in_temp', flat=True)],
-        [float(x) for x in data.values_list('cow_out_temp', flat=True)]
-    ], label=['CHW In', 'CHW Out', 'COW In', 'COW Out'], bins=20)
-    plt.title('Temperature Distribution Histogram')
-    plt.xlabel('Temperature')
-    plt.ylabel('Frequency')
-    plt.legend()
-    graphs.append({"type": "histogram", "data": get_graph()})
-    
-    # Pie Chart
-    plt.figure(figsize=(10, 10))
+    # Line chart data
+    line_data = {
+        'labels': list(data.values_list('id', flat=True)),
+        'datasets': [
+            {'label': 'CHW In', 'data': list(data.values_list('chw_in_temp', flat=True)), 'borderColor': 'rgb(255, 99, 132)'},
+            {'label': 'CHW Out', 'data': list(data.values_list('chw_out_temp', flat=True)), 'borderColor': 'rgb(54, 162, 235)'},
+            {'label': 'COW In', 'data': list(data.values_list('cow_in_temp', flat=True)), 'borderColor': 'rgb(255, 206, 86)'},
+            {'label': 'COW Out', 'data': list(data.values_list('cow_out_temp', flat=True)), 'borderColor': 'rgb(75, 192, 192)'}
+        ]
+    }
+
+    # Pie chart data
     temp_ranges = {
         'Low': data.filter(chw_in_temp__lt=20).count(),
         'Medium': data.filter(chw_in_temp__gte=20, chw_in_temp__lt=30).count(),
         'High': data.filter(chw_in_temp__gte=30).count()
     }
-    plt.pie(temp_ranges.values(), labels=temp_ranges.keys(), autopct='%1.1f%%')
-    plt.title('CHW In Temperature Range Distribution')
-    graphs.append({"type": "pie", "data": get_graph()})
-    
-    return JsonResponse({"graphs": graphs})
+    pie_data = {
+        'labels': list(temp_ranges.keys()),
+        'datasets': [{
+            'data': list(temp_ranges.values()),
+            'backgroundColor': ['#FF6384', '#36A2EB', '#FFCE56'],
+        }]
+    }
 
-def get_graph():
-    buffer = BytesIO()
-    plt.savefig(buffer, format='png')
-    buffer.seek(0)
-    image_png = buffer.getvalue()
-    graph = base64.b64encode(image_png).decode('utf-8')
-    buffer.close()
-    return graph
+    # Scatter plot data
+    scatter_data = {
+        'datasets': [{
+            'label': 'CHW In vs COW Out',
+            'data': [{'x': x, 'y': y} for x, y in zip(data.values_list('chw_in_temp', flat=True), data.values_list('cow_out_temp', flat=True))],
+            'backgroundColor': 'rgba(75, 192, 192, 0.6)'
+        }]
+    }
+
+    # Heatmap data
+    heatmap_data = {
+        'z': [
+            list(data.values_list('chw_in_temp', flat=True)),
+            list(data.values_list('chw_out_temp', flat=True)),
+            list(data.values_list('cow_in_temp', flat=True)),
+            list(data.values_list('cow_out_temp', flat=True))
+        ],
+        'x': list(range(len(data))),
+        'y': ['CHW In', 'CHW Out', 'COW In', 'COW Out'],
+    }
+
+    # Histogram data
+    histogram_data = {
+        'chw_in': list(data.values_list('chw_in_temp', flat=True)),
+        'chw_out': list(data.values_list('chw_out_temp', flat=True)),
+        'cow_in': list(data.values_list('cow_in_temp', flat=True)),
+        'cow_out': list(data.values_list('cow_out_temp', flat=True)),
+    }
+
+    # Box plot data
+    box_plot_data = [
+        {'y': list(data.values_list('chw_in_temp', flat=True)), 'name': 'CHW In'},
+        {'y': list(data.values_list('chw_out_temp', flat=True)), 'name': 'CHW Out'},
+        {'y': list(data.values_list('cow_in_temp', flat=True)), 'name': 'COW In'},
+        {'y': list(data.values_list('cow_out_temp', flat=True)), 'name': 'COW Out'},
+    ]
+
+    return JsonResponse({
+        'bar_chart': bar_data,
+        'line_chart': line_data,
+        'pie_chart': pie_data,
+        'scatter_chart': scatter_data,
+        'heatmap_data': heatmap_data,
+        'histogram_data': histogram_data,
+        'box_plot_data': box_plot_data,
+    })
