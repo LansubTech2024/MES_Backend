@@ -5,6 +5,7 @@ class Machine(models.Model):
     chw_out_temp = models.FloatField()
     cow_in_temp = models.FloatField()
     cow_out_temp = models.FloatField()
+    device_date = models.DateTimeField()
 
     class Meta:
         db_table = 'MACHINES_TABLE'

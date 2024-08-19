@@ -2,6 +2,8 @@ from django.http import JsonResponse
 from django.db.models import Avg, Count
 from .models import GraphModel
 import numpy as np
+from decimal import Decimal
+from datetime import datetime, timedelta
 
 def generate_graphs_data(request):
     data = GraphModel.objects.all()

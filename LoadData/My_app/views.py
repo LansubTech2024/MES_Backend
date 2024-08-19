@@ -24,8 +24,12 @@ class ImportMachinesView(APIView):
             else:
                 return Response({"error": "Expected a list of objects in JSON file."}, status=status.HTTP_400_BAD_REQUEST)
             
-            keys_to_extract = ['CHW_IN_TEMP', 'CHW_OUT_TEMP', 'COW_IN_TEMP', 'COW_OUT_TEMP']
+            keys_to_extract = ['CHW_IN_TEMP', 'CHW_OUT_TEMP', 'COW_IN_TEMP', 'COW_OUT_TEMP', 'TIME']
             df = df[keys_to_extract].dropna().drop_duplicates()
+
+            # Convert 'timestamp' column to datetime format
+            if 'device_date' in df.columns:
+                df['device_date'] = pd.to_datetime(df['device_date'], errors='coerce')
 
             # Insert new data without deleting existing records
             new_machines = []
@@ -35,6 +39,7 @@ class ImportMachinesView(APIView):
                     chw_out_temp=row['CHW_OUT_TEMP'],
                     cow_in_temp=row['COW_IN_TEMP'],
                     cow_out_temp=row['COW_OUT_TEMP'],
+                    device_date=row['TIME'],
                 )
                 if created:
                     new_machines.append(machine)
