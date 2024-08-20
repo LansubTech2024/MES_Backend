@@ -8,5 +8,5 @@ class Machine(models.Model):
     device_date = models.DateTimeField()
 
     class Meta:
-        db_table = 'MACHINES_TABLE'
+        db_table = 'PRODUCTS_TABLE'
 
