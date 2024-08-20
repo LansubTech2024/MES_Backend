@@ -42,8 +42,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'My_app',
     'Graphs',
-    'Detailed_Graphs'
-    
+    'Detailed_Graphs',
+    'authentication'
 ]
 
 MIDDLEWARE = [
