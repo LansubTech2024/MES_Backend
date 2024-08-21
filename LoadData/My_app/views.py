@@ -25,13 +25,7 @@ class ImportMachinesView(APIView):
                 return Response({"error": "Expected a list of objects in JSON file."}, status=status.HTTP_400_BAD_REQUEST)
             
             keys_to_extract = ['CHW_IN_TEMP', 'CHW_OUT_TEMP', 'COW_IN_TEMP', 'COW_OUT_TEMP', 'STEAM_COND_TEMP','HTG_TEMP','LTG_TEMP','HTHE_OUT_TEMP','SPRAY_TEMP','DL_SLN_TEMP', 'REF_TEMP','U_TUBE_TEMP', 'OVRFLW_LTG_TEMP','HTG_TOP_TEMP',
-                               'HTG_BOT_TEMP','HTG_TB_ABS_DIFF_TEMP','VACCUM_PR','STRN_SLN_CONC','INT_SLN_HTG_CONC','DL_SLN_CONC','ABS_TRG_T','REF_TRG_T','MC_SP','CT_FAN_SP','CT_FAN_HYS','L_CUT_DIF_SP','L_CUT_DIF_HYS','H_CUT_DIF_SP',
-                               'H_CUT_DIF_HYS','COW_IN_LOW_TRIP_SP','COW_IN_LOW_TRIP_HYS','COW_IN_HI_TRIP_SP','COW_IN_HI_TRIP_HYS','HTG_LOW_AC_DRV_SP','HTG_HI_AC_DRV_SP','HTG_TRIP_SP','HTG_TRIP_HYS','HTG_VAP_TRIP_SP','HTG_VAP_TRIP_HYS','HTG_TB_DIF_SP','HTG_TB_DIF_HYS',
-                               'SCV_OP_LMT_SP','HTG_DIF_SCV_SP','HTG_DIF_SCV_HYS','ANTFRZ_SP','ANTFRZ_HYS','DT_LOG_TIME_SP','TRIPLG_TIME_SP','HTG_LVL_TMR_ABS_SP','ABLDN_SCDL_CHK_HR_SP','ABLDN_SCDL_OPR_MNS_SP','HT_DGRS_DURTN_SP','SPR_SOL_HI_HTMD_SP','SPR_SOL_HI_HTMD_HYS',
-                               'SPR_SOL_CONC_LOW_SP','SPR_SOL_CONC_HI_SP','SPR_SOL_CONC_HI_HYS','REF_PMP_RN_CNTNSLY_SP', 'REF_PMP_RN_CNTNSLY_HYS','U_TUBE_SCALING_SP','COW_CRYSTALISATION_SP','MC_LOW_LMT_SP','SCV_OP_HI_LMT_SP','CHW_FLW_SP',
-                               'REF_TEMP_LOW_SP','REF_TEMP_LOW_HYS','OVRFLW_HI_SP','OVRFLW_HI_HYS','CHW_FLW_LOW_SP','CHW_FLW_HI_SP','COW_FLW_LOW_SP','COW_FLW_HI_SP','STEAM_FLW_LOW_SP',
-                               'STEAM_FLW_HI_SP','HTG_PR_HI_SP','HTG_PR_LOW_LMT_SP','HTG_PR_HI_LMT_SP','COW_SHUT_OFF_VLV_DLY_SP','HTG_PR_HI_HYS','MC_RDY_STS','HTG_VAP_TEMP','HTG_LVL_ABS_PMP_FREQ','SCV_PID_PROCESS_VALUE','SCV_PID_P',
-                               'SCV_PID_I','DIFF_SCALING_POINT','SCV_MANUAL_OPENING','TIME']
+                               'HTG_BOT_TEMP','HTG_TB_ABS_DIFF_TEMP','VACCUM_PR','REF_TEMP_LOW_SP','REF_TEMP_LOW_HYS','HTG_PR_HI_SP','HTG_PR_LOW_LMT_SP','HTG_PR_HI_LMT_SP','HTG_PR_HI_HYS','HTG_VAP_TEMP','TIME']
             df = df[keys_to_extract].dropna().drop_duplicates()
 
             # Convert 'timestamp' column to datetime format
@@ -46,6 +40,26 @@ class ImportMachinesView(APIView):
                     chw_out_temp=row['CHW_OUT_TEMP'],
                     cow_in_temp=row['COW_IN_TEMP'],
                     cow_out_temp=row['COW_OUT_TEMP'],
+                    steam_cond_temp=row['STEAM_COND_TEMP'],
+                    htg_temp=row['HTG_TEMP'],
+                    ltg_temp=row['LTG_TEMP'],
+                    hthe_out_temp=row['HTHE_OUT_TEMP'],
+                    sray_temp=row['SRAY_TEMP'],
+                    dl_sln_temp=row['DL_SLN_TEMP'],
+                    ref_temp=row['REF_TEMP'],
+                    u_tube_temp=row['U_TUBE_TEMP'],
+                    ovrflw_lgt_temp=row['OVRFLW_LGT_TEMP'],
+                    htg_top_temp=row['HTG_TOP_TEMP'],
+                    htg_bot_temp=row['HTG_BOT_TEMP'],
+                    htg_tb_abs_diff_temp=row['HTG_TB_ABS_DIFF_TEMP'],
+                    vaccum_pr=row['VACCUM_PR_ROW'],
+                    ref_temp_low_sp=row['REF_TEMP_LOW_SP'],
+                    ref_temp_low_hys=row['REF_TEMP_LOW_HYS'],
+                    htg_hr_hi_sp=row['HTG_HR_HI_SP'],
+                    htg_pr_low_lmt_sp=row['HTG_PR_LOW_LMT'],
+                    htg_pr_hi_lmt_sp=row['HTG_PR_HI_LMT_SP'],
+                    htg_pr_hi_hys=row['HTG_PR_HI_HYS'],
+                    htg_vap_temp=row['HTG_VAP_TEMP'],
                     device_date=row['TIME'],
                 )
                 if created:
