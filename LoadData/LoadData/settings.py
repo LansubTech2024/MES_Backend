@@ -42,8 +42,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'My_app',
     'Graphs',
-    'Detailed_Graphs'
-    
+    'Detailed_Graphs',
+    'SecureLogin'
 ]
 
 MIDDLEWARE = [
@@ -58,6 +58,13 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+AUTH_USER_MODEL = 'SecureLogin.User'
+
+AUTHENTICATION_BACKENDS = [
+    'SecureLogin.authentication.EmailBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 ROOT_URLCONF = 'LoadData.urls'
 
@@ -138,12 +145,4 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
-}
+

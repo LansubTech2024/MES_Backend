@@ -3,7 +3,7 @@ import pandas as pd
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Machine
+from .models import Product
 from .serilizers import MachineSerializer
 from datetime import datetime
 
@@ -24,18 +24,29 @@ class ImportMachinesView(APIView):
             else:
                 return Response({"error": "Expected a list of objects in JSON file."}, status=status.HTTP_400_BAD_REQUEST)
             
+<<<<<<< HEAD
             keys_to_extract = ['CHW_IN_TEMP', 'CHW_OUT_TEMP', 'COW_IN_TEMP', 'COW_OUT_TEMP', 'STEAM_COND_TEMP','HTG_TEMP','LTG_TEMP','HTHE_OUT_TEMP','SPRAY_TEMP','DL_SLN_TEMP', 'REF_TEMP','U_TUBE_TEMP', 'OVRFLW_LTG_TEMP','HTG_TOP_TEMP',
                                'HTG_BOT_TEMP','HTG_TB_ABS_DIFF_TEMP','VACCUM_PR','REF_TEMP_LOW_SP','REF_TEMP_LOW_HYS','HTG_PR_HI_SP','HTG_PR_LOW_LMT_SP','HTG_PR_HI_LMT_SP','HTG_PR_HI_HYS','HTG_VAP_TEMP','TIME']
             df = df[keys_to_extract].dropna().drop_duplicates()
+=======
+            keys_to_extract = ['CHW_IN_TEMP', 'CHW_OUT_TEMP', 'COW_IN_TEMP', 'COW_OUT_TEMP', 'TIME']
+            df = df[keys_to_extract].dropna()
+>>>>>>> 3f8dc262977784363aa1ccf96d1b0302cbf8e892
 
             # Convert 'timestamp' column to datetime format
             if 'device_date' in df.columns:
                 df['device_date'] = pd.to_datetime(df['device_date'], errors='coerce')
 
+            # Remove rows with invalid dates
+            df = df.dropna(subset=['TIME'])
+            
+            # Remove duplicate rows
+            df = df.drop_duplicates()
+
             # Insert new data without deleting existing records
             new_machines = []
             for _, row in df.iterrows():
-                machine, created = Machine.objects.get_or_create(
+                machine, created = Product.objects.get_or_create(
                     chw_in_temp=row['CHW_IN_TEMP'],
                     chw_out_temp=row['CHW_OUT_TEMP'],
                     cow_in_temp=row['COW_IN_TEMP'],
@@ -67,7 +78,7 @@ class ImportMachinesView(APIView):
 
             return Response({
                 "success": f"{len(new_machines)} new records successfully inserted into Oracle SQL!",
-                "total_records": Machine.objects.count()
+                "total_records": Product.objects.count()
             }, status=status.HTTP_201_CREATED)
         
         except Exception as e:

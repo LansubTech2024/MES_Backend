@@ -1,6 +1,6 @@
 from django.db import models
 
-class Machine(models.Model):
+class Product(models.Model):
     chw_in_temp = models.FloatField()
     chw_out_temp = models.FloatField()
     cow_in_temp = models.FloatField()
@@ -8,5 +8,5 @@ class Machine(models.Model):
     device_date = models.DateTimeField()
 
     class Meta:
-        db_table = 'MACHINES_TABLE'
+        db_table = 'PRODUCTS_TABLE'
 

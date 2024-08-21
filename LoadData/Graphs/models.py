@@ -11,7 +11,7 @@ class GraphModel(models.Model):
     
     class Meta:
         managed = False  # If you don't want Django to manage this table
-        db_table = 'MACHINES_TABLE'  # Replace with your actual table name
+        db_table = 'PRODUCTS_TABLE'  # Replace with your actual table name
     
     def __str__(self):
         return f"date: {self.device_date}, CHW In: {self.chw_in_temp}, CHW Out: {self.chw_out_temp}, COW In: {self.cow_in_temp}, COW Out: {self.cow_out_temp}"
