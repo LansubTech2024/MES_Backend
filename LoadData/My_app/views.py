@@ -3,7 +3,7 @@ import pandas as pd
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Machine
+from .models import Product
 from .serilizers import MachineSerializer
 from datetime import datetime
 
@@ -40,7 +40,7 @@ class ImportMachinesView(APIView):
             # Insert new data without deleting existing records
             new_machines = []
             for _, row in df.iterrows():
-                machine, created = Machine.objects.get_or_create(
+                machine, created = Product.objects.get_or_create(
                     chw_in_temp=row['CHW_IN_TEMP'],
                     chw_out_temp=row['CHW_OUT_TEMP'],
                     cow_in_temp=row['COW_IN_TEMP'],
@@ -52,7 +52,7 @@ class ImportMachinesView(APIView):
 
             return Response({
                 "success": f"{len(new_machines)} new records successfully inserted into Oracle SQL!",
-                "total_records": Machine.objects.count()
+                "total_records": Product.objects.count()
             }, status=status.HTTP_201_CREATED)
         
         except Exception as e:

@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'My_app',
     'Graphs',
     'Detailed_Graphs',
-    'authentication'
+    'SecureLogin'
 ]
 
 MIDDLEWARE = [
@@ -58,6 +58,13 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+AUTH_USER_MODEL = 'SecureLogin.User'
+
+AUTHENTICATION_BACKENDS = [
+    'SecureLogin.authentication.EmailBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 ROOT_URLCONF = 'LoadData.urls'
 
@@ -137,3 +144,5 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
