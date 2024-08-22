@@ -6,6 +6,7 @@ from rest_framework import status
 from .models import Product
 from .serilizers import MachineSerializer
 from datetime import datetime
+import time
 
 class ImportMachinesView(APIView):
     def post(self, request, *args, **kwargs):
@@ -49,6 +50,9 @@ class ImportMachinesView(APIView):
                 )
                 if created:
                     new_machines.append(machine)
+
+                # Add a delay of 3 seconds before processing the next record
+                    time.sleep(3)
 
             return Response({
                 "success": f"{len(new_machines)} new records successfully inserted into Oracle SQL!",
