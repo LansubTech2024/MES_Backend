@@ -12,12 +12,7 @@ class SignupSerializer(serializers.ModelSerializer):
         fields = ['email', 'name', 'password']
 
     def create(self, validated_data):
-        user = User.objects.create_user(
-            email=validated_data['email'],
-            name=validated_data['name'],
-            password=validated_data['password']
-        )
-        return user
+        return User.objects.create_user(**validated_data)
     
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
