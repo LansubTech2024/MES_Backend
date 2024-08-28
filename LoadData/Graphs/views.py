@@ -1,10 +1,12 @@
 from django.http import JsonResponse
 from django.db.models import Avg, Max, Min, Count
+from django.db.models.functions import TruncMonth
 from .models import GraphModel
 import numpy as np
+from datetime import timedelta
 
 def generate_graphs_data(request):
-    data = GraphModel.objects.all()
+    data = GraphModel.objects.all().order_by('device_date')
 
     # Calculate total entries
     total_entries_stats = data.aggregate(
@@ -31,7 +33,7 @@ def generate_graphs_data(request):
 
     # Line chart data
     line_data = {
-        'labels': list(data.values_list('id', flat=True)),
+        'labels': list(data.values_list('device_date', flat=True)),
         'datasets': [
             {'label': 'CHW In', 'data': list(data.values_list('chw_in_temp', flat=True)), 'borderColor': 'rgb(255, 99, 132)'},
             {'label': 'CHW Out', 'data': list(data.values_list('chw_out_temp', flat=True)), 'borderColor': 'rgb(54, 162, 235)'},
@@ -79,13 +81,64 @@ def generate_graphs_data(request):
         }
     }
 
-    # 3D Surface Plot Data
-    surface_data = {
-        'x': list(range(10)),
-        'y': list(range(10)),
-        'z': [[data.first().chw_in_temp + i + j for i in range(10)] for j in range(10)]
+    # Donut Chart Data
+    temp_type_counts = data.aggregate(
+        chw_in_count=Count('chw_in_temp'),
+        chw_out_count=Count('chw_out_temp'),
+        cow_in_count=Count('cow_in_temp'),
+        cow_out_count=Count('cow_out_temp')
+    )
+
+    donut_data = {
+        'labels': ['CHW In', 'CHW Out', 'COW In', 'COW Out'],
+        'datasets': [
+            {
+                'data': [
+                    temp_type_counts['chw_in_count'],
+                    temp_type_counts['chw_out_count'],
+                    temp_type_counts['cow_in_count'],
+                    temp_type_counts['cow_out_count']
+                ],
+                'backgroundColor': ['#0b1d78', '#0069c0', '#1fe074', '#4BC0C0']
+            }
+        ]
     }
 
+    # Gantt Chart Data
+    gantt_data = []
+    for entry in data:
+        gantt_data.append({
+            'Task': f'Entry {entry.id}',
+            'Start': entry.device_date.strftime('%Y-%m-%d %H:%M:%S'),
+            'Finish': (entry.device_date + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S'),
+            'Resource': f'Temp: {entry.chw_in_temp:.2f}°C'
+        })
+
+    # Combination Chart Data
+    monthly_data = data.annotate(month=TruncMonth('device_date')).values('month').annotate(
+        avg_chw_in_temp=Avg('chw_in_temp'),
+        avg_pressure=Avg('vaccum_pr')
+    ).order_by('month')
+
+    combination_data = {
+        'labels': [entry['month'].strftime('%b %Y') for entry in monthly_data],
+        'datasets': [
+            {
+                'type': 'bar',
+                'label': 'Avg CHW In Temperature',
+                'data': [entry['avg_chw_in_temp'] for entry in monthly_data],
+                'backgroundColor': 'rgba(255, 99, 132, 0.8)',
+                'yAxisID': 'y-axis-1',
+            },
+            {
+                'type': 'line',
+                'label': 'Avg Pressure',
+                'data': [entry['avg_pressure'] for entry in monthly_data],
+                'borderColor': 'rgba(54, 162, 235, 1)',
+                'yAxisID': 'y-axis-2',
+            }
+        ]
+    }
 
     return JsonResponse({
         "total_entries": total_entries_stats,
@@ -95,5 +148,7 @@ def generate_graphs_data(request):
         'line_chart': line_data,
         'waterfall_chart': waterfall_data,
         'gauge_chart': gauge_data,
-        'surface_chart' : surface_data
+        'donut_chart': donut_data,
+        'gantt_chart': gantt_data,
+        'combination_chart': combination_data,
     })
