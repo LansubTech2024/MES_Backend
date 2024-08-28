@@ -1,6 +1,8 @@
 from django.urls import path
-from .views import graph_data_view
+from .views import views
 
 urlpatterns = [
-    path('graph-data/', graph_data_view, name='graph_data_view'),
+    path('get_prediction_data/', views.get_prediction_data, name='get_prediction_data'),
+    path('get_impact_data/', views.get_impact_data, name='get_impact_data'),
 ]
+
