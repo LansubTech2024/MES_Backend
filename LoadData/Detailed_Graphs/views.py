@@ -27,10 +27,17 @@ def line_chart_popup(request):
     
     # Generate forecast for next 7 days
     forecast = results.forecast(steps=7)
+
+    # Generate dates corresponding to the forecast period
+    # Assuming the last date in your original data is the end date
+    last_date = df.index[-1]
+
+    # Create future dates based on the forecast steps
+    future_dates = [last_date + timedelta(days=i+1) for i in range(len(forecast))]
     
     # Prepare predictive graph data
     predictive_data = {
-        'dates': [str(date) for date in forecast.index],
+        'dates': [date.strftime('%Y-%m-%d') for date in future_dates],  # Format dates as 'YYYY-MM-DD'
         'values': forecast.values.tolist(),
     }
     
