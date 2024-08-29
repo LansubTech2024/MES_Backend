@@ -5,49 +5,46 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 from datetime import datetime, timedelta
 
-# List of labels you want to use
-labels = ['CHW_IN_TEMP', 'CHW_OUT_TEMP', 'COW_IN_TEMP', 'COW_OUT_TEMP', 'STEAM_COND_TEMP', 'HTG_TEMP', 
-          'LTG_TEMP', 'HTHE_OUT_TEMP', 'SPRAY_TEMP', 'DL_SLN_TEMP', 'REF_TEMP', 'U_TUBE_TEMP', 
-          'OVRFLW_LTG_TEMP', 'HTG_TOP_TEMP', 'HTG_BOT_TEMP', 'HTG_TB_ABS_DIFF_TEMP', 'VACCUM_PR', 
-          'REF_TEMP_LOW_SP', 'REF_TEMP_LOW_HYS', 'HTG_PR_HI_SP', 'HTG_PR_LOW_LMT_SP', 'HTG_PR_HI_LMT_SP', 
-          'HTG_PR_HI_HYS', 'HTG_VAP_TEMP', 'TIME']
 
-def get_historical_data(graph_type):
+def get_historical_data(chart_type):
     try:
-        data = TemperatureData.objects.all().values(*[label.lower() for label in labels])
+        data = TemperatureData.objects.all().values('device_date', 'chw_in_temp', 'chw_out_temp', 'cow_in_temp', 'cow_out_temp', 'vaccum_pr')
         df = pd.DataFrame(list(data))
         df['device_date'] = pd.to_datetime(df['device_date'])
 
-        if graph_type in ['bar', 'column']:
-            result = df.groupby(df['device_date'].dt.date).mean()
-            result.index.name = 'date'
-            return {
-                'labels': result.index.astype(str).tolist(),
-                'datasets': [
-                    {'label': label, 'data': result[label.lower()].tolist()}
-                    for label in labels if label.lower() in result.columns
-                ]
-            }
-
-        elif graph_type == 'line':
+        if chart_type == 'line':
+            # Line Chart: Showing trends over time
             return df.to_dict(orient='records')
 
-        elif graph_type == 'pie':
-            avg_values = df[[label.lower() for label in labels]].mean()
-            return [
-                {'label': label, 'value': avg_values[label.lower()]}
-                for label in labels if label.lower() in avg_values.index
-            ]
+        elif chart_type == 'waterfall':
+            # Waterfall Chart: Showing cumulative effects of temperatures
+            df['temperature_effect'] = df[['chw_in_temp', 'chw_out_temp', 'cow_in_temp', 'cow_out_temp']].sum(axis=1)
+            cumulative_effect = df.groupby(df['device_date'].dt.date)['temperature_effect'].sum()
+            return cumulative_effect.reset_index().to_dict(orient='records')
 
-        # Other graph types remain the same
-        # ...
+        elif chart_type == 'gauge':
+            # Gauge Meter: Showing pressure levels
+            avg_pressure = df['pressure'].mean()
+            return {'pressure': avg_pressure}
+
+        elif chart_type == 'donut':
+            # Donut Chart: Showing proportions of temperature readings
+            avg_temps = df[['chw_in_temp', 'chw_out_temp', 'cow_in_temp', 'cow_out_temp']].mean().to_dict()
+            return avg_temps
+
+        elif chart_type == 'combination':
+            # Combination Chart: Comparing temperature and pressure in one view
+            df['average_temp'] = df[['chw_in_temp', 'chw_out_temp', 'cow_in_temp', 'cow_out_temp']].mean(axis=1)
+            combination_data = df.groupby(df['device_date'].dt.date).mean()[['average_temp', 'pressure']]
+            return combination_data.reset_index().to_dict(orient='records')
 
     except Exception as e:
         return {'error': str(e)}
 
     return df.to_dict(orient='records')
 
-def get_predictive_data(graph_type):
+
+def get_predictive_data(chart_type):
     try:
         df = pd.DataFrame(get_historical_data('line'))
         df['device_date'] = pd.to_datetime(df['device_date'])
@@ -55,79 +52,119 @@ def get_predictive_data(graph_type):
         predictions = {}
         future_dates = [datetime.now() + timedelta(days=i) for i in range(1, 31)]
         
-        for label in labels:
-            metric = label.lower()
-            if metric in df.columns:
-                X = df['device_date'].astype(int) // 10**9
-                y = df[metric]
-                
-                model = LinearRegression().fit(X.values.reshape(-1, 1), y)
-                future_X = pd.to_datetime(future_dates).astype(int) // 10**9
-                predictions[metric] = model.predict(future_X.values.reshape(-1, 1)).tolist()
+        for metric in ['chw_in_temp', 'chw_out_temp', 'cow_in_temp', 'cow_out_temp', 'vaccum_pr']:
+            X = df['device_date'].astype(int) // 10**9
+            y = df[metric]
+            
+            model = LinearRegression().fit(X.values.reshape(-1, 1), y)
+            future_X = pd.to_datetime(future_dates).astype(int) // 10**9
+            predictions[metric] = model.predict(future_X.values.reshape(-1, 1)).tolist()
         
-        if graph_type in ['bar', 'column', 'line']:
+        if chart_type == 'line':
             return {
                 'labels': [d.strftime('%Y-%m-%d') for d in future_dates],
-                'datasets': [{'label': label, 'data': predictions[label.lower()]} for label in labels if label.lower() in predictions]
+                'datasets': [{'label': metric, 'data': values} for metric, values in predictions.items()]
             }
 
-        elif graph_type == 'pie':
-            return [
-                {'label': label, 'value': sum(predictions[label.lower()])}
-                for label in labels if label.lower() in predictions
-            ]
+        elif chart_type == 'waterfall':
+            temperature_effects = np.array(predictions['chw_in_temp']) + np.array(predictions['chw_out_temp']) + \
+                                  np.array(predictions['cow_in_temp']) + np.array(predictions['cow_out_temp'])
+            cumulative_effect = np.cumsum(temperature_effects).tolist()
+            return {
+                'labels': [d.strftime('%Y-%m-%d') for d in future_dates],
+                'data': cumulative_effect
+            }
 
-        # Other graph types remain the same
-        # ...
+        elif chart_type == 'gauge':
+            avg_pressure_future = np.mean(predictions['pressure'])
+            return {'pressure': avg_pressure_future}
 
+        elif chart_type == 'donut':
+            avg_temps_future = {
+                'chw_in_temp': np.mean(predictions['chw_in_temp']),
+                'chw_out_temp': np.mean(predictions['chw_out_temp']),
+                'cow_in_temp': np.mean(predictions['cow_in_temp']),
+                'cow_out_temp': np.mean(predictions['cow_out_temp'])
+            }
+            return avg_temps_future
+
+        elif chart_type == 'combination':
+            avg_temps_future = (np.array(predictions['chw_in_temp']) + np.array(predictions['chw_out_temp']) + 
+                                np.array(predictions['cow_in_temp']) + np.array(predictions['cow_out_temp'])) / 4
+            combination_data_future = {
+                'labels': [d.strftime('%Y-%m-%d') for d in future_dates],
+                'datasets': [
+                    {'label': 'Average Temperature', 'data': avg_temps_future.tolist()},
+                    {'label': 'Pressure', 'data': predictions['pressure']}
+                ]
+            }
+            return combination_data_future
+        
     except Exception as e:
         return {'error': str(e)}
 
     return predictions
 
-def get_impact_analysis(graph_type):
+
+def get_impact_analysis(chart_type):
     temperature_changes = np.arange(-10, 11, 1)
     impacts = {}
     
-    for label in labels:
-        metric = label.lower()
+    for metric in ['chw_in_temp', 'chw_out_temp', 'cow_in_temp', 'cow_out_temp', 'pressure']:
         impacts[metric] = {
             'energy_efficiency': (-0.5 * temperature_changes).tolist(),
             'cooling_capacity': (0.3 * temperature_changes).tolist()
         }
     
-    if graph_type in ['bar', 'column', 'line']:
+    if chart_type == 'line':
         return {
             'labels': temperature_changes.tolist(),
             'datasets': [
-                {'label': f'{label} - Energy Efficiency', 'data': impacts[label.lower()]['energy_efficiency']} for label in labels if label.lower() in impacts
+                {'label': f'{metric} - Energy Efficiency', 'data': values['energy_efficiency']} for metric, values in impacts.items()
             ] + [
-                {'label': f'{label} - Cooling Capacity', 'data': impacts[label.lower()]['cooling_capacity']} for label in labels if label.lower() in impacts
+                {'label': f'{metric} - Cooling Capacity', 'data': values['cooling_capacity']} for metric, values in impacts.items()
             ]
         }
 
-    elif graph_type == 'pie':
-        impact_data = []
-        for label in labels:
-            metric = label.lower()
-            impact_data.extend([
-                {'label': f'{label} - Energy Efficiency', 'value': sum(impacts[metric]['energy_efficiency'])},
-                {'label': f'{label} - Cooling Capacity', 'value': sum(impacts[metric]['cooling_capacity'])}
-            ])
-        return impact_data
+    elif chart_type == 'waterfall':
+        cumulative_impact = np.cumsum(np.sum([impacts[metric]['energy_efficiency'] for metric in impacts], axis=0))
+        return {
+            'labels': temperature_changes.tolist(),
+            'data': cumulative_impact.tolist()
+        }
 
-    # Other graph types remain the same
-    # ...
+    elif chart_type == 'gauge':
+        avg_impact_on_pressure = np.mean(impacts['pressure']['energy_efficiency'])
+        return {'pressure_impact': avg_impact_on_pressure}
 
+    elif chart_type == 'donut':
+        avg_energy_efficiency = {
+            metric: np.mean(values['energy_efficiency']) for metric, values in impacts.items()
+        }
+        return avg_energy_efficiency
+
+    elif chart_type == 'combination':
+        avg_energy_efficiency = {
+            metric: np.mean(values['energy_efficiency']) for metric, values in impacts.items()
+        }
+        avg_cooling_capacity = {
+            metric: np.mean(values['cooling_capacity']) for metric, values in impacts.items()
+        }
+        return {'energy_efficiency': avg_energy_efficiency, 'cooling_capacity': avg_cooling_capacity}
+    
     return impacts
 
+
 def graph_data_view(request):
-    graph_type = request.GET.get('type', 'line')
+    chart_type = request.GET.get('type', 'line')
+
+    if chart_type not in ['line', 'waterfall', 'gauge', 'donut', 'combination']:
+        return JsonResponse({'error': 'Invalid chart type'}, status=400)
 
     data = {
-        'historical': get_historical_data(graph_type),
-        'predictive': get_predictive_data(graph_type),
-        'impact': get_impact_analysis(graph_type)
+        'historical': get_historical_data(chart_type),
+        'predictive': get_predictive_data(chart_type),
+        'impact': get_impact_analysis(chart_type)
     }
 
     return JsonResponse(data)

@@ -104,16 +104,6 @@ def generate_graphs_data(request):
         ]
     }
 
-    # Gantt Chart Data
-    gantt_data = []
-    for entry in data:
-        gantt_data.append({
-            'Task': f'Entry {entry.id}',
-            'Start': entry.device_date.strftime('%Y-%m-%d %H:%M:%S'),
-            'Finish': (entry.device_date + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S'),
-            'Resource': f'Temp: {entry.chw_in_temp:.2f}°C'
-        })
-
     # Combination Chart Data
     monthly_data = data.annotate(month=TruncMonth('device_date')).values('month').annotate(
         avg_chw_in_temp=Avg('chw_in_temp'),
@@ -149,6 +139,5 @@ def generate_graphs_data(request):
         'waterfall_chart': waterfall_data,
         'gauge_chart': gauge_data,
         'donut_chart': donut_data,
-        'gantt_chart': gantt_data,
         'combination_chart': combination_data,
     })
