@@ -1,268 +1,214 @@
 from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
-import json
-import random
+from django.db.models import Avg
+from .models import TemperatureData
+from datetime import timedelta
+import pandas as pd
+from statsmodels.tsa.arima.model import ARIMA
 
-<<<<<<< HEAD
-
-def get_historical_data(chart_type):
-    try:
-        data = TemperatureData.objects.all().values('device_date', 'chw_in_temp', 'chw_out_temp', 'cow_in_temp', 'cow_out_temp', 'vaccum_pr')
-        df = pd.DataFrame(list(data))
-        df['device_date'] = pd.to_datetime(df['device_date'])
-
-        if chart_type == 'line':
-            # Line Chart: Showing trends over time
-            return df.to_dict(orient='records')
-
-        elif chart_type == 'waterfall':
-            # Waterfall Chart: Showing cumulative effects of temperatures
-            df['temperature_effect'] = df[['chw_in_temp', 'chw_out_temp', 'cow_in_temp', 'cow_out_temp']].sum(axis=1)
-            cumulative_effect = df.groupby(df['device_date'].dt.date)['temperature_effect'].sum()
-            return cumulative_effect.reset_index().to_dict(orient='records')
-
-        elif chart_type == 'gauge':
-            # Gauge Meter: Showing pressure levels
-            avg_pressure = df['pressure'].mean()
-            return {'pressure': avg_pressure}
-
-        elif chart_type == 'donut':
-            # Donut Chart: Showing proportions of temperature readings
-            avg_temps = df[['chw_in_temp', 'chw_out_temp', 'cow_in_temp', 'cow_out_temp']].mean().to_dict()
-            return avg_temps
-
-        elif chart_type == 'combination':
-            # Combination Chart: Comparing temperature and pressure in one view
-            df['average_temp'] = df[['chw_in_temp', 'chw_out_temp', 'cow_in_temp', 'cow_out_temp']].mean(axis=1)
-            combination_data = df.groupby(df['device_date'].dt.date).mean()[['average_temp', 'pressure']]
-            return combination_data.reset_index().to_dict(orient='records')
-
-    except Exception as e:
-        return {'error': str(e)}
-
-    return df.to_dict(orient='records')
-
-
-def get_predictive_data(chart_type):
-    try:
-        df = pd.DataFrame(get_historical_data('line'))
-        df['device_date'] = pd.to_datetime(df['device_date'])
-        
-        predictions = {}
-        future_dates = [datetime.now() + timedelta(days=i) for i in range(1, 31)]
-        
-        for metric in ['chw_in_temp', 'chw_out_temp', 'cow_in_temp', 'cow_out_temp', 'vaccum_pr']:
-            X = df['device_date'].astype(int) // 10**9
-            y = df[metric]
-            
-            model = LinearRegression().fit(X.values.reshape(-1, 1), y)
-            future_X = pd.to_datetime(future_dates).astype(int) // 10**9
-            predictions[metric] = model.predict(future_X.values.reshape(-1, 1)).tolist()
-        
-        if chart_type == 'line':
-            return {
-                'labels': [d.strftime('%Y-%m-%d') for d in future_dates],
-                'datasets': [{'label': metric, 'data': values} for metric, values in predictions.items()]
-            }
-
-        elif chart_type == 'waterfall':
-            temperature_effects = np.array(predictions['chw_in_temp']) + np.array(predictions['chw_out_temp']) + \
-                                  np.array(predictions['cow_in_temp']) + np.array(predictions['cow_out_temp'])
-            cumulative_effect = np.cumsum(temperature_effects).tolist()
-            return {
-                'labels': [d.strftime('%Y-%m-%d') for d in future_dates],
-                'data': cumulative_effect
-            }
-
-        elif chart_type == 'gauge':
-            avg_pressure_future = np.mean(predictions['pressure'])
-            return {'pressure': avg_pressure_future}
-
-        elif chart_type == 'donut':
-            avg_temps_future = {
-                'chw_in_temp': np.mean(predictions['chw_in_temp']),
-                'chw_out_temp': np.mean(predictions['chw_out_temp']),
-                'cow_in_temp': np.mean(predictions['cow_in_temp']),
-                'cow_out_temp': np.mean(predictions['cow_out_temp'])
-            }
-            return avg_temps_future
-
-        elif chart_type == 'combination':
-            avg_temps_future = (np.array(predictions['chw_in_temp']) + np.array(predictions['chw_out_temp']) + 
-                                np.array(predictions['cow_in_temp']) + np.array(predictions['cow_out_temp'])) / 4
-            combination_data_future = {
-                'labels': [d.strftime('%Y-%m-%d') for d in future_dates],
-                'datasets': [
-                    {'label': 'Average Temperature', 'data': avg_temps_future.tolist()},
-                    {'label': 'Pressure', 'data': predictions['pressure']}
-                ]
-            }
-            return combination_data_future
-        
-    except Exception as e:
-        return {'error': str(e)}
-
-    return predictions
-
-
-def get_impact_analysis(chart_type):
-    temperature_changes = np.arange(-10, 11, 1)
-    impacts = {}
+def line_chart_popup(request):
+    # Assuming we're interested in chw_in_temp for this example
+    field_of_interest = 'chw_in_temp'
     
-    for metric in ['chw_in_temp', 'chw_out_temp', 'cow_in_temp', 'cow_out_temp', 'pressure']:
-        impacts[metric] = {
-            'energy_efficiency': (-0.5 * temperature_changes).tolist(),
-            'cooling_capacity': (0.3 * temperature_changes).tolist()
-        }
+    # Get the last 30 days of data
+    end_date = TemperatureData.objects.latest('device_date').device_date
+    start_date = end_date - timedelta(days=30)
     
-    if chart_type == 'line':
-        return {
-            'labels': temperature_changes.tolist(),
-            'datasets': [
-                {'label': f'{metric} - Energy Efficiency', 'data': values['energy_efficiency']} for metric, values in impacts.items()
-            ] + [
-                {'label': f'{metric} - Cooling Capacity', 'data': values['cooling_capacity']} for metric, values in impacts.items()
-=======
-@require_http_methods(["POST"])
-def get_prediction_data(request):
-    data = json.loads(request.body)
-    chart_type = data.get('chart_type')
+    data = TemperatureData.objects.filter(
+        device_date__range=(start_date, end_date)
+    ).order_by('device_date')
 
-    # This is a placeholder. You should implement your actual prediction logic here.
-    if chart_type == 'line':
-        prediction_data = {
-            'labels': ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'],
-            'datasets': [
-                {'label': 'CHW In Prediction', 'data': [random.uniform(20, 30) for _ in range(5)], 'borderColor': 'rgb(255, 99, 132)'},
-                {'label': 'CHW Out Prediction', 'data': [random.uniform(20, 30) for _ in range(5)], 'borderColor': 'rgb(54, 162, 235)'},
-                {'label': 'COW In Prediction', 'data': [random.uniform(20, 30) for _ in range(5)], 'borderColor': 'rgb(255, 206, 86)'},
-                {'label': 'COW Out Prediction', 'data': [random.uniform(20, 30) for _ in range(5)], 'borderColor': 'rgb(75, 192, 192)'}
->>>>>>> 7a747ffe7b1f83f95edc84281ba74a301489c29b
-            ]
-        }
-    elif chart_type == 'waterfall':
-        prediction_data = {
-            'x': ["Initial", "CHW In", "CHW Out", "COW In", "COW Out", "Final"],
-            'y': [0] + [random.uniform(-5, 5) for _ in range(4)] + [random.uniform(20, 30)],
-            'measure': ["absolute", "relative", "relative", "relative", "relative", "total"]
-        }
-    elif chart_type == 'gauge':
-        prediction_data = {
-            'value': random.uniform(0, 100),
-            'title': 'Predicted Average Pressure',
-            'range': [0, 100],
-            'steps': [
-                {'range': [0, 30], 'color': 'lightgreen'},
-                {'range': [30, 70], 'color': 'yellow'},
-                {'range': [70, 100], 'color': 'red'}
-            ],
-            'threshold': {
-                'line': {'color': 'red', 'width': 4},
-                'value': 85
-            }
-        }
-    elif chart_type == 'combination':
-        prediction_data = {
-            'labels': ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'],
-            'datasets': [
-                {
-                    'type': 'line',
-                    'label': 'Temperature',
-                    'data': [random.uniform(20, 30) for _ in range(5)],
-                    'borderColor': 'rgb(255, 99, 132)',
-                    'yAxisID': 'y-axis-1'
-                },
-                {
-                    'type': 'bar',
-                    'label': 'Pressure',
-                    'data': [random.uniform(50, 100) for _ in range(5)],
-                    'backgroundColor': 'rgb(54, 162, 235)',
-                    'yAxisID': 'y-axis-2'
-                }
-            ],
-            'options': {
-                'scales': {
-                    'yAxes': [
-                        {
-                            'type': 'linear',
-                            'display': True,
-                            'position': 'left',
-                            'id': 'y-axis-1',
-                        },
-                        {
-                            'type': 'linear',
-                            'display': True,
-                            'position': 'right',
-                            'id': 'y-axis-2',
-                            'gridLines': {
-                                'drawOnChartArea': False
-                            }
-                        }
-                    ]
-                }
-            }
-        }
-    else:
-        return JsonResponse({'error': 'Invalid chart type'}, status=400)
-
-<<<<<<< HEAD
-    elif chart_type == 'waterfall':
-        cumulative_impact = np.cumsum(np.sum([impacts[metric]['energy_efficiency'] for metric in impacts], axis=0))
-        return {
-            'labels': temperature_changes.tolist(),
-            'data': cumulative_impact.tolist()
-        }
-
-    elif chart_type == 'gauge':
-        avg_impact_on_pressure = np.mean(impacts['pressure']['energy_efficiency'])
-        return {'pressure_impact': avg_impact_on_pressure}
-
-    elif chart_type == 'donut':
-        avg_energy_efficiency = {
-            metric: np.mean(values['energy_efficiency']) for metric, values in impacts.items()
-        }
-        return avg_energy_efficiency
-
-    elif chart_type == 'combination':
-        avg_energy_efficiency = {
-            metric: np.mean(values['energy_efficiency']) for metric, values in impacts.items()
-        }
-        avg_cooling_capacity = {
-            metric: np.mean(values['cooling_capacity']) for metric, values in impacts.items()
-        }
-        return {'energy_efficiency': avg_energy_efficiency, 'cooling_capacity': avg_cooling_capacity}
+    # Prepare data for ARIMA model
+    df = pd.DataFrame(list(data.values('device_date', field_of_interest)))
+    df.set_index('device_date', inplace=True)
     
-    return impacts
+    # Fit ARIMA model
+    model = ARIMA(df[field_of_interest], order=(1,1,1))
+    results = model.fit()
+    
+    # Generate forecast for next 7 days
+    forecast = results.forecast(steps=7)
+    
+    # Prepare predictive graph data
+    predictive_data = {
+        'dates': [str(date) for date in forecast.index],
+        'values': forecast.values.tolist(),
+    }
+    
+    # Calculate impact data
+    current_avg = df[field_of_interest].mean()
+    forecast_avg = forecast.mean()
+    percent_change = ((forecast_avg - current_avg) / current_avg) * 100
+    
+    impact_cards = [
+        {
+            'title': 'Average Temperature Change',
+            'value': f'{forecast_avg - current_avg:.2f}°C',
+            'description': 'Predicted change in average temperature'
+        },
+        {
+            'title': 'Percentage Change',
+            'value': f'{percent_change:.2f}%',
+            'description': 'Percentage change in temperature'
+        },
+        {
+            'title': 'Efficiency Impact',
+            'value': 'Medium',
+            'description': 'Estimated impact on system efficiency'
+        }
+    ]
+    
+    return JsonResponse({
+        'predictive_graph': predictive_data,
+        'impact_cards': impact_cards
+    })
 
+def waterfall_chart_popup(request):
+    # Get the last 30 days of data
+    end_date = TemperatureData.objects.latest('device_date').device_date
+    start_date = end_date - timedelta(days=30)
+    
+    data = TemperatureData.objects.filter(
+        device_date__range=(start_date, end_date)
+    ).order_by('device_date')
 
-def graph_data_view(request):
-    chart_type = request.GET.get('type', 'line')
+    df = pd.DataFrame(list(data.values('device_date', 'chw_in_temp', 'chw_out_temp')))
+    df['temp_diff'] = df['chw_in_temp'] - df['chw_out_temp']
 
-    if chart_type not in ['line', 'waterfall', 'gauge', 'donut', 'combination']:
-        return JsonResponse({'error': 'Invalid chart type'}, status=400)
+    # Predictive analysis
+    model = ARIMA(df['temp_diff'], order=(1,1,1))
+    results = model.fit()
+    forecast = results.forecast(steps=7)
 
-    data = {
-        'historical': get_historical_data(chart_type),
-        'predictive': get_predictive_data(chart_type),
-        'impact': get_impact_analysis(chart_type)
-=======
-    return JsonResponse(prediction_data)
-
-@require_http_methods(["POST"])
-def get_impact_data(request):
-    data = json.loads(request.body)
-    chart_type = data.get('chart_type')
-
-    # This is a placeholder. You should implement your actual impact data logic here.
-    impact_data = {
-        'title': f'Impact Analysis for {chart_type.capitalize()} Chart',
-        'description': f'This card shows the potential impacts based on the {chart_type} chart data.',
-        'factors': [
-            {'name': 'Energy Consumption', 'impact': random.choice(['High', 'Medium', 'Low']), 'description': 'Impact on overall energy usage'},
-            {'name': 'System Efficiency', 'impact': random.choice(['High', 'Medium', 'Low']), 'description': 'Effect on the efficiency of the cooling system'},
-            {'name': 'Maintenance Needs', 'impact': random.choice(['High', 'Medium', 'Low']), 'description': 'Potential increase in maintenance requirements'}
-        ]
->>>>>>> 7a747ffe7b1f83f95edc84281ba74a301489c29b
+    predictive_data = {
+        'dates': [str(date) for date in forecast.index],
+        'values': forecast.values.tolist(),
     }
 
-    return JsonResponse(impact_data)
+    # Impact analysis
+    avg_diff = df['temp_diff'].mean()
+    forecast_avg = forecast.mean()
+    percent_change = ((forecast_avg - avg_diff) / avg_diff) * 100
+
+    impact_cards = [
+        {
+            'title': 'Average Temperature Difference Change',
+            'value': f'{forecast_avg - avg_diff:.2f}°C',
+            'description': 'Predicted change in average temperature difference'
+        },
+        {
+            'title': 'Percentage Change',
+            'value': f'{percent_change:.2f}%',
+            'description': 'Percentage change in temperature difference'
+        },
+        {
+            'title': 'Efficiency Impact',
+            'value': 'Medium' if abs(percent_change) < 10 else 'High',
+            'description': 'Estimated impact on system efficiency'
+        }
+    ]
+
+    return JsonResponse({
+        'predictive_graph': predictive_data,
+        'impact_cards': impact_cards
+    })
+
+def donut_chart_popup(request):
+    # Get the last 30 days of data
+    end_date = TemperatureData.objects.latest('device_date').device_date
+    start_date = end_date - timedelta(days=30)
+    
+    data = TemperatureData.objects.filter(
+        device_date__range=(start_date, end_date)
+    )
+
+    temp_ranges = {
+        'Low': data.filter(chw_in_temp__lt=20).count(),
+        'Medium': data.filter(chw_in_temp__gte=20, chw_in_temp__lt=25).count(),
+        'High': data.filter(chw_in_temp__gte=25).count()
+    }
+
+    total = sum(temp_ranges.values())
+    forecast = {k: v / total for k, v in temp_ranges.items()}
+
+    predictive_data = {
+        'labels': list(forecast.keys()),
+        'values': list(forecast.values()),
+    }
+
+    impact_cards = [
+        {
+            'title': 'Dominant Temperature Range',
+            'value': max(forecast, key=forecast.get),
+            'description': 'Most frequent temperature range'
+        },
+        {
+            'title': 'Low Temperature Percentage',
+            'value': f'{forecast["Low"]*100:.2f}%',
+            'description': 'Percentage of low temperature readings'
+        },
+        {
+            'title': 'High Temperature Percentage',
+            'value': f'{forecast["High"]*100:.2f}%',
+            'description': 'Percentage of high temperature readings'
+        }
+    ]
+
+    return JsonResponse({
+        'predictive_graph': predictive_data,
+        'impact_cards': impact_cards
+    })
+
+def combination_chart_popup(request):
+    # Get the last 12 months of data
+    end_date = TemperatureData.objects.latest('device_date').device_date
+    start_date = end_date - timedelta(days=365)
+    
+    data = TemperatureData.objects.filter(
+        device_date__range=(start_date, end_date)
+    )
+
+    df = pd.DataFrame(list(data.values('device_date', 'chw_in_temp', 'vaccum_pr')))
+    df.set_index('device_date', inplace=True)
+    df = df.resample('M').mean()
+
+    # Predictive analysis
+    temp_model = ARIMA(df['chw_in_temp'], order=(1,1,1))
+    temp_results = temp_model.fit()
+    temp_forecast = temp_results.forecast(steps=3)
+
+    pressure_model = ARIMA(df['vaccum_pr'], order=(1,1,1))
+    pressure_results = pressure_model.fit()
+    pressure_forecast = pressure_results.forecast(steps=3)
+
+    predictive_data = {
+        'dates': [str(date) for date in temp_forecast.index],
+        'temp_values': temp_forecast.values.tolist(),
+        'pressure_values': pressure_forecast.values.tolist(),
+    }
+
+    # Impact analysis
+    temp_change = (temp_forecast.mean() - df['chw_in_temp'].mean()) / df['chw_in_temp'].mean() * 100
+    pressure_change = (pressure_forecast.mean() - df['vaccum_pr'].mean()) / df['vaccum_pr'].mean() * 100
+
+    impact_cards = [
+        {
+            'title': 'Temperature Trend',
+            'value': 'Increasing' if temp_change > 0 else 'Decreasing',
+            'description': f'{abs(temp_change):.2f}% change predicted'
+        },
+        {
+            'title': 'Pressure Trend',
+            'value': 'Increasing' if pressure_change > 0 else 'Decreasing',
+            'description': f'{abs(pressure_change):.2f}% change predicted'
+        },
+        {
+            'title': 'System Status',
+            'value': 'Stable' if abs(temp_change) < 5 and abs(pressure_change) < 5 else 'Fluctuating',
+            'description': 'Based on temperature and pressure trends'
+        }
+    ]
+
+    return JsonResponse({
+        'predictive_graph': predictive_data,
+        'impact_cards': impact_cards
+    })
