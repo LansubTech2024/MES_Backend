@@ -60,6 +60,26 @@ MIDDLEWARE = [
 
 CORS_ALLOW_ALL_ORIGINS = True
 
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ORIGIN_WHITELIST = [
+    'http://localhost:5173',  # Allowed origin (frontend)
+]
+
+CORS_ALLOW_METHODS = [
+    'GET',
+    'POST',
+    'PUT',
+    'PATCH',
+    'DELETE',
+    'OPTIONS',
+]
+
+CORS_ALLOW_HEADERS = [
+    'content-type',
+    'authorization',
+]
+
 SECRET_KEY = 'LansubTech'
 
 AUTH_USER_MODEL = 'SecureLogin.CustomUser'
@@ -103,13 +123,13 @@ SIMPLE_JWT = {
 }
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST = 'smtp.outlook.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'your_email@gmail.com'
-EMAIL_HOST_PASSWORD = 'your_email_password'
+EMAIL_HOST_USER = 'intern1@lansubtechnologies.com'
+EMAIL_HOST_PASSWORD = 'Lansub@1234'
 
-FRONTEND_URL = 'http://your-frontend-url.com'
+FRONTEND_URL = 'http://localhost:5173'
 
 WSGI_APPLICATION = 'LoadData.wsgi.application'
 
