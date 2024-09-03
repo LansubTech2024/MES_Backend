@@ -147,29 +147,36 @@ def waterfall_chart_popup(request):
     })
 
 def donut_chart_popup(request):
-    # Partitioned Donut Chart for Donut Chart
+    # Line Chart for Temperature Data
     end_date = TemperatureData.objects.latest('device_date').device_date
     start_date = end_date - timedelta(days=30)
     
     data = TemperatureData.objects.filter(
         device_date__range=(start_date, end_date)
-    )
-
-    temp_ranges = {
-        'Low': data.filter(chw_in_temp__lt=20).count(),
-        'Medium': data.filter(chw_in_temp__gte=20, chw_in_temp__lt=25).count(),
-        'High': data.filter(chw_in_temp__gte=25).count()
+    ).order_by('device_date')
+    
+    dates = [entry.device_date.strftime('%Y-%m-%d') for entry in data]
+    temperatures = [entry.chw_in_temp for entry in data]
+    
+    predictive_data = {
+        'type': 'line',
+        'labels': dates,
+        'datasets': [{
+            'label': 'Temperature',
+            'data': temperatures,
+        }]
     }
-
+    
+    # Calculate temperature ranges
+    temp_ranges = {
+        'Low': sum(1 for temp in temperatures if temp < 20),
+        'Medium': sum(1 for temp in temperatures if 20 <= temp < 25),
+        'High': sum(1 for temp in temperatures if temp >= 25)
+    }
+    
     total = sum(temp_ranges.values())
     forecast = {k: v / total for k, v in temp_ranges.items()}
-
-    predictive_data = {
-        'type': 'partitioned_donut',
-        'labels': list(forecast.keys()),
-        'values': list(forecast.values()),
-    }
-
+    
     impact_cards = [
         {
             'title': 'Dominant Temperature Range',
@@ -187,7 +194,7 @@ def donut_chart_popup(request):
             'description': 'Percentage of high temperature readings'
         }
     ]
-
+    
     # Generate recommendation based on the dominant temperature range
     dominant_range = max(forecast, key=forecast.get)
     if dominant_range == 'Low':
@@ -196,13 +203,12 @@ def donut_chart_popup(request):
         recommendation = "High temperature readings dominate. This could indicate potential inefficiency in the cooling system. Investigate for any issues."
     else:
         recommendation = "Temperature readings are within an optimal range. Continue monitoring for consistent performance."
-
+    
     return JsonResponse({
         'predictive_graph': predictive_data,
         'impact_cards': impact_cards,
         'recommendation': recommendation
     })
-
 def combination_chart_popup(request):
     # Overlay Combination Chart for Combination Chart
     end_date = TemperatureData.objects.latest('device_date').device_date

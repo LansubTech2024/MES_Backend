@@ -3,7 +3,8 @@ from django.db.models import Avg, Max, Min, Count
 from django.db.models.functions import TruncMonth
 from .models import GraphModel
 import numpy as np
-from datetime import timedelta
+from django.db.models.functions import TruncTime
+from datetime import timedelta, datetime
 
 def generate_graphs_data(request):
     data = GraphModel.objects.all().order_by('device_date')
@@ -32,8 +33,13 @@ def generate_graphs_data(request):
     )
 
     # Line chart data
+    # Format time to exclude seconds
+    formatted_times = [
+       datetime.strptime(str(time), '%H:%M:%S').strftime('%H:%M')
+       for time in data.annotate(time=TruncTime('device_date')).values_list('time', flat=True)
+    ]
     line_data = {
-        'labels': list(data.values_list('device_date', flat=True)),
+        'labels': formatted_times,
         'datasets': [
             {'label': 'CHW In', 'data': list(data.values_list('chw_in_temp', flat=True)), 'borderColor': 'rgb(255, 99, 132)'},
             {'label': 'CHW Out', 'data': list(data.values_list('chw_out_temp', flat=True)), 'borderColor': 'rgb(54, 162, 235)'},
@@ -42,7 +48,7 @@ def generate_graphs_data(request):
         ]
     }
 
-    # Waterfall chart data (modified)
+    # Temp changes Line chart data
     avg_data = data.aggregate(
         chw_in_avg=Avg('chw_in_temp'),
         chw_out_avg=Avg('chw_out_temp'),
@@ -50,15 +56,13 @@ def generate_graphs_data(request):
         cow_out_avg=Avg('cow_out_temp')
     )
 
-    waterfall_data = {
-        'x': ["Initial", "CHW In", "CHW Out", "COW In", "COW Out", "Final"],
-        'y': [0, 
-              avg_data['chw_in_avg'], 
-              avg_data['chw_out_avg'] - avg_data['chw_in_avg'],
-              avg_data['cow_in_avg'] - avg_data['chw_out_avg'],
-              avg_data['cow_out_avg'] - avg_data['cow_in_avg'],
-              avg_data['cow_out_avg']],
-        'measure': ["absolute", "relative", "relative", "relative", "relative", "total"]
+    line_chart_data = {
+       'x': ["Initial", "CHW In", "CHW Out", "COW In", "COW Out"],
+       'y': [0, 
+          avg_data['chw_in_avg'], 
+          avg_data['chw_out_avg'],
+          avg_data['cow_in_avg'],
+          avg_data['cow_out_avg']]
     }
 
     # Calculate gauge meter data for pressure
@@ -99,7 +103,7 @@ def generate_graphs_data(request):
                     temp_type_counts['cow_in_count'],
                     temp_type_counts['cow_out_count']
                 ],
-                'backgroundColor': ['#0b1d78', '#0069c0', '#1fe074', '#4BC0C0']
+                'backgroundColor': ['#000000', '#333333', '#666666', '#999999']
             }
         ]
     }
@@ -136,7 +140,7 @@ def generate_graphs_data(request):
         "chw_out_temp": chw_out_temp_stats,
         "avg_temps": avg_temps,
         'line_chart': line_data,
-        'waterfall_chart': waterfall_data,
+        'tempchange_line_chart': line_chart_data,
         'gauge_chart': gauge_data,
         'donut_chart': donut_data,
         'combination_chart': combination_data,
