@@ -26,9 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-%!#72-y(i!#0o*5d^@f8+0mn7#b!2@m2#5pbew^jb8+81p7b9+'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+DEBUG = False
 
 
 # Application definition
@@ -61,7 +59,16 @@ MIDDLEWARE = [
 ]
 
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+MEDIA_URL = '/media/'
+
+STATICFILES_DIR = [
+    os.path.join(BASE_DIR, 'static')
+]
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'assets')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+ALLOWED_HOSTS = ['vivardhi.in', 'www.vivardhi.in']
 
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -84,6 +91,7 @@ CORS_ALLOW_HEADERS = [
     'content-type',
     'authorization',
 ]
+
 
 SECRET_KEY = 'LansubTech'
 
