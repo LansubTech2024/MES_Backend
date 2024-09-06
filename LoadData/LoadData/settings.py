@@ -59,16 +59,14 @@ MIDDLEWARE = [
 ]
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 STATICFILES_DIR = [
     os.path.join(BASE_DIR, 'static')
 ]
-
-STATIC_ROOT = os.path.join(BASE_DIR, 'assets')
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-ALLOWED_HOSTS = ['vivardhi.in', 'www.vivardhi.in']
 
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -91,6 +89,8 @@ CORS_ALLOW_HEADERS = [
     'content-type',
     'authorization',
 ]
+
+ALLOWED_HOSTS = ['vivardhi.in', 'www.vivardhi.in']
 
 
 SECRET_KEY = 'LansubTech'
@@ -155,7 +155,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.oracle',
         'NAME': 'localhost:1521/orcl',
         'USER': 'SYS',
-        'PASSWORD': 'Lansub',
+        'PASSWORD': 'Lansub@2024',
         'OPTIONS': {
             'purity': oracledb.ATTR_PURITY_SELF,
             'mode': oracledb.AUTH_MODE_SYSDBA,
