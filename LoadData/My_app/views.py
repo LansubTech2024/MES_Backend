@@ -12,7 +12,7 @@ class ImportMachinesView(APIView):
     def post(self, request, *args, **kwargs):
         try:
             # Specify the path to your JSON file
-            json_file_path = r'C:\Users\Lenovo\Desktop\MES_Backend\LoadData\data.json' 
+            json_file_path = r'C:\Users\keert\Desktop\MES_Backend\LoadData\data.json' 
 
             # Load JSON data from the file
             with open(json_file_path, 'r') as json_file:
