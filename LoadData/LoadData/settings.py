@@ -119,16 +119,15 @@ WSGI_APPLICATION = 'LoadData.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.oracle',
-        'NAME': 'localhost:1521/orcl',
-        'USER': 'SYS',
-        'PASSWORD': 'Lansub',
-        'OPTIONS': {
-            'purity': oracledb.ATTR_PURITY_SELF,
-            'mode': oracledb.AUTH_MODE_SYSDBA,
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'MANAGE',
+        'USER': 'root',
+        'PASSWORD': 'sys@0805',
+        'HOST':'127.0.0.1',
+        'PORT':'3306',
         },
     }
-}
+
 
 
 # Password validation
