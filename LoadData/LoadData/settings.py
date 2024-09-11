@@ -90,7 +90,7 @@ CORS_ALLOW_HEADERS = [
     'authorization',
 ]
 
-ALLOWED_HOSTS = ['vivardhi.in', 'www.vivardhi.in']
+ALLOWED_HOSTS = ['vivardhi.in', 'www.vivardhi.in', '88.222.245.134']
 
 
 SECRET_KEY = 'LansubTech'
