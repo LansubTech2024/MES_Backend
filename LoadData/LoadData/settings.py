@@ -70,11 +70,12 @@ STATICFILES_DIR = [
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-CORS_ALLOW_CREDENTIALS = True
-
-CORS_ORIGIN_WHITELIST = [
-    'http://localhost:5173',  # Allowed origin (frontend)
+CORS_ALLOWED_ORIGINS = [
+    "https://www.vivardhi.in",
+    # Add other origins if necessary
 ]
+
+CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_METHODS = [
     'GET',
