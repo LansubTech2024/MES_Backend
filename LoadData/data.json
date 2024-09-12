@@ -1,7 +1,7 @@
 [
     {
-        "CHW_IN_TEMP": 0.00,
-        "CHW_OUT_TEMP": 0.00,
+        "CHW_IN_TEMP": 2.00,
+        "CHW_OUT_TEMP": 3.00,
         "COW_IN_TEMP": 0.00,
         "COW_OUT_TEMP": 0.00,
         "STEAM_TEMP": 0.00,
