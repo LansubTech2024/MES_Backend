@@ -158,7 +158,7 @@ DATABASES = {
         'NAME': 'mes_database',  # New database name
         'USER': 'mes_user',      # New MySQL user
         'PASSWORD': 'your_password',  # Password you set
-        'HOST': 'localhost',
+        'HOST': '88.222.245.134',
         'PORT': '3306',
 
         },
