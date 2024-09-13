@@ -157,7 +157,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'mes_database',  # New database name
         'USER': 'mes_user',      # New MySQL user
-        'PASSWORD': 'Password',  # Password you set
+        'PASSWORD': 'your_password',  # Password you set
         'HOST': 'localhost',
         'PORT': '3306',
 
