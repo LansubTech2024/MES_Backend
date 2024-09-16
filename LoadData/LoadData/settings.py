@@ -26,7 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-%!#72-y(i!#0o*5d^@f8+0mn7#b!2@m2#5pbew^jb8+81p7b9+'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 
 # Application definition
@@ -91,7 +91,7 @@ CORS_ALLOW_HEADERS = [
     'authorization',
 ]
 
-ALLOWED_HOSTS = ['vivardhi.in', 'www.vivardhi.in', '88.222.245.134', '127.0.0.1']
+ALLOWED_HOSTS = []
 
 
 SECRET_KEY = 'LansubTech'
@@ -155,9 +155,9 @@ DATABASES = {
     'default': {
 
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'mes_database',  
-        'USER': 'mes_user',      
-        'PASSWORD': 'password',  
+        'NAME': 'manage',  
+        'USER': 'root',      
+        'PASSWORD': 'sys@0805',  
         'HOST': 'localhost',
         'PORT': '3306',
 
