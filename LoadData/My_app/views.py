@@ -7,14 +7,12 @@ from .models import Device
 from .serilizers import MachineSerializer
 from datetime import datetime
 import time
-from django.conf import settings
-from pathlib import Path
 
 class ImportMachinesView(APIView):
     def post(self, request, *args, **kwargs):
         try:
             # Dynamically construct the file path using pathlib
-            json_file_path = Path(settings.BASE_DIR) / 'LoadData' / 'data.json' 
+            json_file_path = r'C:\Users\Lenovo\Desktop\MES_Backend\LoadData\data.json'
 
             # Load JSON data from the file
             with open(json_file_path, 'r') as json_file:

@@ -103,7 +103,7 @@ def generate_graphs_data(request):
                     temp_type_counts['cow_in_count'],
                     temp_type_counts['cow_out_count']
                 ],
-                'backgroundColor': ['#000000', '#333333', '#666666', '#999999']
+                'backgroundColor': ['#A3C9F1', '#D1C4E9', '#B3E5A3', '#FFF9C4']
             }
         ]
     }
